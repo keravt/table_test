@@ -1,16 +1,16 @@
 services:
-  postgres:
-    image: postgres:15.1
-    volumes:
-      - ./docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
-      - postgres_microservice_back:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: people
-      POSTGRES_PASSWORD: people
-      POSTGRES_DB: people
-    restart: unless-stopped
-    ports:
-      - 5445:5432
+  # postgres:
+  #   image: postgres:15.1
+  #   volumes:
+  #     - ./docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+  #     - postgres_microservice_back:/var/lib/postgresql/data
+  #   environment:
+  #     POSTGRES_USER: people
+  #     POSTGRES_PASSWORD: people
+  #     POSTGRES_DB: people
+  #   restart: unless-stopped
+  #   ports:
+  #     - 5445:5432
 
   # back:
   #   build: service_name/
