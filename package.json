@@ -1,0 +1,10 @@
+{
+  "name": "template",
+  "version": "1.0.0",
+  "description": "template",
+  "license": "UNLICENSED",
+  "scripts": {
+    "deploy:test": "docker compose down && docker compose build --build-arg ENV=test && ENV=test docker compose up",
+    "deploy:prod": "docker compose down && docker compose build --build-arg ENV=prod && ENV=prod docker compose up"
+  }
+}

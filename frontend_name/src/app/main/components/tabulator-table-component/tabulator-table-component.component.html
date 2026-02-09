@@ -1,0 +1,44 @@
+<div style="display: flex; flex-direction: column; height: 100%">
+  <div class="tabulator-filters">
+    <select [(ngModel)]="filterField" (change)="updateFilter()">
+      <option value="">— поле —</option>
+      <option value="fullName">Название</option>
+      <option value="num">Номер</option>
+      <option value="manager">Руководитель</option>
+      <option value="company">Компания</option>
+      <option value="archived">Архив</option>
+      <option value="function">Архив = false и num &lt; 3</option>
+    </select>
+
+    <select
+      [(ngModel)]="filterType"
+      (change)="updateFilter()"
+      [disabled]="filterField === 'function'"
+    >
+      <option value="=">=</option>
+      <option value="<"><</option>
+      <option value="<="><=</option>
+      <option value=">">></option>
+      <option value=">=">>=</option>
+      <option value="!=">!=</option>
+      <option value="like">Содержит</option>
+    </select>
+
+    <input
+      type="text"
+      [(ngModel)]="filterValue"
+      (keyup)="updateFilter()"
+      [disabled]="filterField === 'function'"
+      placeholder="значение"
+    />
+
+    <button (click)="clearFilter()">Очистить фильтр</button>
+    <div style="display: flex">
+      <!-- <button (click)="doSelected()">do some</button> -->
+      <button (click)="groupByManager()">Группировка по руководителю вкл/выкл</button>
+      <button (click)="downloadXL()" id="download-xlsx">Скачать XLSX</button>
+    </div>
+    <div></div>
+  </div>
+  <div #tabulatorHost style="width: 100%; height: 100%"></div>
+</div>

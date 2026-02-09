@@ -1,0 +1,54 @@
+<ng-container *ngIf="projects$ | async">
+  <mat-tab-group (selectedIndexChange)="tabIndex = $event" style="height: 100%">
+    <mat-tab label="RevoGrid" style="padding: 20px; height: 100%">
+      <div style="display: flex; flex-direction: column; height: 100%">
+        <div>
+          <button
+          style="
+            height: 28px;
+            padding: 0 10px;
+            border: 1px solid #bbb;
+            background: #fafafa;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 13px;
+          "
+          (click)="isGroupingOn = !isGroupingOn"
+        >
+          Группировка по комании вкл/выкл
+        </button>
+        </div>
+        <revo-grid
+          *ngIf="tabIndex === 0"
+          theme="material"
+          style="height: 100%; width: 100%; border-radius: 10px"
+          [source]="projects"
+          [columns]="columns"
+          [rowHeaders]="true"
+          [autoSizeColumn]="{ allColumns: true, mode: 'autoSizeOnTextOverlap' }"
+          [resize]="true"
+          [canMoveColumns]="true"
+          [sorting]="true"
+          [stretch]="true"
+          [filter]="filterConfig"
+          [range]="true"
+          [columnTypes]="columnTypes"
+          (afteredit)="onAfterEdit($event)"
+          [grouping]="isGroupingOn ? revoGrouping : {}"
+        >
+        </revo-grid>
+      </div>
+    </mat-tab>
+    <mat-tab label="Tabulator">
+      <app-tabulator-table
+        [tableData]="projects"
+        [columnNames]="table_def"
+      ></app-tabulator-table>
+    </mat-tab>
+    <mat-tab label="JSpreadsheet">
+      <app-jspreadsheet-table
+        [data]="jspreadsheetData(projects)"
+      ></app-jspreadsheet-table>
+    </mat-tab>
+  </mat-tab-group>
+</ng-container>
