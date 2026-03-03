@@ -1,7 +1,9 @@
+import { NgFor, NgIf } from '@angular/common';
 import {
   AfterViewInit,
   Component,
   ElementRef,
+  HostListener,
   Input,
   OnChanges,
   OnDestroy,
@@ -17,7 +19,7 @@ import { TabulatorFull as Tabulator } from 'tabulator-tables';
   templateUrl: './tabulator-table-component.component.html',
   styleUrls: ['./tabulator-table-component.component.scss'],
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, NgIf, NgFor],
   encapsulation: ViewEncapsulation.None,
 })
 export class TabulatorTableComponent
@@ -39,6 +41,32 @@ export class TabulatorTableComponent
   filterType = '=';
   filterValue = '';
 
+  activeField = '';
+  activeFilters = new Set<string>();
+
+  private columnFilters = new Map<
+  string,
+  {
+    conditions: {
+      operator: string;
+      value: any;
+      logicWithNext?: 'AND' | 'OR';
+    }[];
+  }
+>();
+
+  operators = ['=', '!=', '>', '>=', '<', '<=', 'Содержит'];
+
+  @HostListener('document:click', ['$event'])
+  handleClickOutside(event: MouseEvent) {
+    if (!this.showFilterPopup) return;
+
+    const popup = document.querySelector('.filter-popup');
+    if (popup && !popup.contains(event.target as Node)) {
+      this.showFilterPopup = false;
+    }
+  }
+
   updateFilter() {
     if (!this.tabulator) return;
 
@@ -54,15 +82,15 @@ export class TabulatorTableComponent
     );
   }
 
-  clearFilter() {
-    if (!this.tabulator) return;
+  // clearFilter() {
+  //   if (!this.tabulator) return;
 
-    this.filterField = '';
-    this.filterType = '=';
-    this.filterValue = '';
+  //   this.filterField = '';
+  //   this.filterType = '=';
+  //   this.filterValue = '';
 
-    this.tabulator.clearFilter(false);
-  }
+  //   this.tabulator.clearFilter(false);
+  // }
 
   ngAfterViewInit(): void {
     this.viewReady = true;
@@ -80,6 +108,43 @@ export class TabulatorTableComponent
 
   private initTable(): void {
     if (!this.viewReady || this.tabulator) return;
+
+    const enhancedColumns = this.columnNames.map((col) => ({
+      ...col,
+
+      titleFormatter: (cell: any, formatterParams: any, onRendered: any) => {
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'space-between';
+
+        const titleSpan = document.createElement('span');
+        titleSpan.innerText = col.title;
+
+        const filterBtn = document.createElement('span');
+        console.log('TE ', this.activeFilters.has(col.field));
+        if (this.activeFilters.has(col.field)) {
+          filterBtn.classList.add('active-filter');
+        }
+        filterBtn.classList.add('header-filter-btn');
+        filterBtn.innerHTML = `
+  <i class="material-icons header-filter-icon">filter_list</i>
+`;
+        filterBtn.style.cursor = 'pointer';
+        filterBtn.style.marginLeft = '6px';
+
+        filterBtn.onclick = (event: MouseEvent) => {
+          event.stopPropagation();
+          const rect = (event.target as HTMLElement).getBoundingClientRect();
+          this.openAdvancedFilter(col.field, rect);
+        };
+
+        container.appendChild(titleSpan);
+        container.appendChild(filterBtn);
+
+        return container;
+      },
+    }));
 
     this.tabulator = new Tabulator(this.tabulatorHost.nativeElement, {
       data: this.tableData,
@@ -99,7 +164,7 @@ export class TabulatorTableComponent
         width: 41,
       },
       // rowHeader:{headerSort:false, resizable: false, minWidth:30, width:30, rowHandle:true, formatter:"handle"},
-      columns: this.columnNames,
+      columns: enhancedColumns,
       layout: 'fitColumns',
       height: this.height,
       pagination: true,
@@ -124,12 +189,147 @@ export class TabulatorTableComponent
     });
   }
 
+  filterState: {
+    field: string;
+    conditions: {
+      operator: string;
+      value: any;
+      logicWithNext?: 'AND' | 'OR';
+    }[];
+  } | null = null;
+
+  showFilterPopup = false;
+
+  popupPosition = { top: 0, left: 0 };
+
+  openAdvancedFilter(field: string, rect: DOMRect) {
+    const saved = this.columnFilters.get(field);
+
+    this.filterState = {
+      field,
+      conditions: saved ? JSON.parse(JSON.stringify(saved.conditions)) : [], // 👈 теперь пусто
+    };
+
+    this.activeField = field;
+
+    this.popupPosition = {
+      top: rect.bottom + window.scrollY,
+      left: rect.left + window.scrollX,
+    };
+
+    this.showFilterPopup = true;
+  }
+
   ngOnDestroy(): void {
     this.tabulator?.destroy();
   }
 
   doSelected() {
     console.log(this.tabulator?.getSelectedRows());
+  }
+
+  addCondition() {
+    if (!this.filterState) return;
+    console.log(this.filterState)
+
+    this.filterState.conditions.push({
+      operator: '=',
+      value: '',
+      logicWithNext: 'AND',
+    });
+  }
+
+  removeCondition(index: number) {
+    this.filterState?.conditions.splice(index, 1);
+  }
+
+
+  applyFilter() {
+  if (!this.tabulator || !this.filterState) return;
+
+  const { field, conditions } = this.filterState;
+
+  const valid = conditions.filter(
+    c => c.value !== '' && c.value !== null
+  );
+
+  if (!valid.length) {
+    this.tabulator.clearFilter(true);
+    this.columnFilters.delete(field);
+    this.activeFilters.delete(field);
+    this.showFilterPopup = false;
+    return;
+  }
+
+  this.tabulator.setFilter((data: any) => {
+
+    let result = true;
+
+    for (let i = 0; i < valid.length; i++) {
+      const c = valid[i];
+
+      const fieldValue = data[field];
+      const compareValue = c.value;
+
+      let conditionResult = false;
+
+      switch (c.operator) {
+        case '=':
+          conditionResult = fieldValue == compareValue;
+          break;
+        case '!=':
+          conditionResult = fieldValue != compareValue;
+          break;
+        case '>':
+          conditionResult = fieldValue > compareValue;
+          break;
+        case '>=':
+          conditionResult = fieldValue >= compareValue;
+          break;
+        case '<':
+          conditionResult = fieldValue < compareValue;
+          break;
+        case '<=':
+          conditionResult = fieldValue <= compareValue;
+          break;
+        case 'like':
+          conditionResult = String(fieldValue)
+            .toLowerCase()
+            .includes(String(compareValue).toLowerCase());
+          break;
+      }
+
+      if (i === 0) {
+        result = conditionResult;
+      } else {
+        const prev = valid[i - 1];
+
+        if (prev.logicWithNext === 'AND') {
+          result = result && conditionResult;
+        } else {
+          result = result || conditionResult;
+        }
+      }
+    }
+
+    return result;
+  });
+
+  this.columnFilters.set(field, {
+    conditions: structuredClone(conditions)
+  });
+
+  this.activeFilters.add(field);
+  this.showFilterPopup = false;
+}
+
+  clearFilter() {
+    if (!this.tabulator) return;
+
+    this.tabulator.clearFilter(true);
+    this.columnFilters.clear();
+    this.activeFilters.clear();
+    this.showFilterPopup = false;
   }
 
   groupByManager() {

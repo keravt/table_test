@@ -41,4 +41,62 @@
     <div></div>
   </div>
   <div #tabulatorHost style="width: 100%; height: 100%"></div>
+
+<div
+  (click)="$event.stopPropagation()"
+  *ngIf="showFilterPopup && filterState"
+  class="filter-popup"
+  [style.top.px]="popupPosition.top"
+  [style.left.px]="popupPosition.left"
+>
+  <div class="popup-title">
+    Фильтр: {{ activeField }}
+  </div>
+
+  <!-- Если условий нет -->
+  <div *ngIf="filterState.conditions.length === 0" class="empty-state">
+    <button (click)="addCondition()">+ Добавить условие</button>
+  </div>
+
+  <!-- Если есть условия -->
+  <ng-container *ngIf="filterState.conditions.length > 0">
+    
+    <div *ngFor="let c of filterState.conditions; let i = index">
+      
+      <div class="condition-row">
+        <select [(ngModel)]="c.operator">
+          <option *ngFor="let op of operators" [value]="op">
+            {{ op }}
+          </option>
+        </select>
+
+        <input
+          type="text"
+          [(ngModel)]="c.value"
+          placeholder="Значение"
+        />
+
+        <button (click)="removeCondition(i)">✖</button>
+      </div>
+
+      <!-- Логика между условиями -->
+      <div
+        class="logic-between"
+        *ngIf="i < filterState.conditions.length - 1"
+      >
+        <select [(ngModel)]="c.logicWithNext">
+          <option value="AND">И</option>
+          <option value="OR">Или</option>
+        </select>
+      </div>
+
+    </div>
+
+    <button (click)="addCondition()">+ Добавить условие</button>
+  </ng-container>
+
+  <div class="actions">
+    <button (click)="applyFilter()">Применить</button>
+    <button (click)="clearFilter()">Очистить</button>
+  </div>
 </div>

@@ -89,7 +89,6 @@ export class InitComponent implements OnInit {
       title: 'Название',
       field: 'fullName',
       sorter: 'string',
-      headerFilter: 'input',
       editor: 'input',
       validator: 'required',
     },
@@ -97,7 +96,6 @@ export class InitComponent implements OnInit {
       title: 'Номер',
       field: 'num',
       sorter: 'number',
-      headerFilter: 'input',
       editor: 'number',
       validator: 'required',
     },
@@ -105,11 +103,6 @@ export class InitComponent implements OnInit {
       title: 'Руководитель',
       field: 'manager',
       sorter: 'string',
-      headerFilter: true,
-      headerFilterParams: {
-        values: this.managers, // ✅ auto extract unique values from data
-        clearable: true,
-      },
       editor: 'list',
       editorParams: {
         values: this.managers,
@@ -122,18 +115,12 @@ export class InitComponent implements OnInit {
       title: 'Компания',
       field: 'company',
       editor: 'input',
-      headerFilter: 'input',
       validator: 'required',
     },
     {
       title: 'Финансовый менеджер',
       field: 'finmanager',
       sorter: 'string',
-      headerFilter: true,
-      headerFilterParams: {
-        values: this.finManagers, // ✅ auto extract unique values from data
-        clearable: true,
-      },
       editor: 'list',
       editorParams: {
         values: this.finManagers,
@@ -157,7 +144,6 @@ export class InitComponent implements OnInit {
 
       editor: true, // checkbox editor
       headerSort: true,
-      headerFilter: 'tickCross',
     },
   ];
 
