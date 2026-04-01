@@ -1,6 +1,3 @@
 <ng-container *ngIf="projects$ | async">
- <app-tabulator-table
-        [tableData]="projects"
-        [columnNames]="table_def"
-      ></app-tabulator-table>
+      <lib-ais-table [data]="tasks" [columns]="kanban_table"></lib-ais-table>
 </ng-container>

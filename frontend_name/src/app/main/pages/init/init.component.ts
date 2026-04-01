@@ -16,6 +16,9 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TabulatorTableComponent } from '../../components/tabulator-table-component/tabulator-table-component.component';
 import { JSpreadsheetTableComponent } from '../../components/jspreadsheet-table/jspreadsheet-table.component';
 import NumberColumnType from '@revolist/revogrid-column-numeral';
+import { AisTableLibComponent } from 'ais-table-lib';
+import { ColumnDefinition } from 'tabulator-tables';
+import { DateTime } from 'luxon';
 
 export interface Project {
   uid: string;
@@ -41,13 +44,49 @@ export interface Project {
     MatTabsModule,
     TabulatorTableComponent,
     JSpreadsheetTableComponent,
+    AisTableLibComponent,
   ],
 })
 export class InitComponent implements OnInit {
   projects$!: Observable<Project[]>;
+  tasks$!: Observable<any[]>;
+  statusList: any[] = [];
+  statusOptions: any[] = [];
+  kanban_table: ColumnDefinition[] = [];
 
   constructor(private readonly http: HttpClient) {}
   ngOnInit(): void {
+    this.tasks$ = this.fetchUserKanbanTasks();
+
+    this.tasks$.subscribe((data) => {
+      this.tasks = data.map((t) => {
+        let deadline = null;
+        const sv = t.stickersValues.find(
+          (sv: any) => sv.sticker.type === 'deadline'
+        )?.value;
+
+        if (sv) {
+          deadline = Number(sv)
+        }
+
+        return {
+          ...t,
+          deadline,
+        };
+      });
+
+      this.statusList = this.getUniqueColumns(this.tasks);
+
+      this.statusOptions = this.statusList.map((col) => ({
+        label: col.title,
+        value: col,
+      }));
+
+      this.kanban_table = this.buildKanbanColumns();
+
+      console.log('Statuses:', this.statusOptions);
+    });
+
     this.projects$ = this.getProjects();
     this.projects$.subscribe((data) => {
       // store locally for checkbox logic
@@ -57,6 +96,7 @@ export class InitComponent implements OnInit {
   tabIndex = 0;
 
   projects: Project[] = [];
+  tasks: any[] = [];
 
   selectedIds = new Set<string>();
 
@@ -81,8 +121,161 @@ export class InitComponent implements OnInit {
     ],
   };
 
+  columnTypes = {
+    select: new SelectTypePlugin(),
+    numeric: new NumberColumnType('0,0'),
+  };
 
-  columnTypes = { select: new SelectTypePlugin(), numeric: new NumberColumnType('0,0')  };
+  buildKanbanColumns(): ColumnDefinition[] {
+    return [
+      {
+        title: 'Название',
+        field: 'title',
+        sorter: 'string',
+      },
+      {
+        title: 'Дедлайн',
+        field: 'deadline',
+        hozAlign: 'center',
+        width: 140,
+        editor: dateEditor,
+        formatter: function (cell) {
+          const value = cell.getValue();
+          if (!value) return '';
+          return DateTime.fromMillis(value).toFormat('dd/MM/yyyy');
+        },
+      },
+      {
+        title: 'Готово',
+        field: 'isDone',
+        width: 90,
+        hozAlign: 'center',
+
+        formatter: 'tickCross',
+        formatterParams: {
+          allowEmpty: false,
+          tickElement: '✔',
+          crossElement: '',
+        },
+
+        editor: true, // checkbox editor
+        headerSort: true,
+      },
+      {
+        title: 'Статус',
+        field: 'column', // 👈 full object
+        editor: 'list',
+        editorParams: {
+          values: this.statusOptions,
+          itemFormatter: (label: string, value: any) => {
+            console.log(label, value);
+            return `<span style="
+        background:${value.color};
+        color:white;
+        padding:2px 6px;
+        border-radius:6px;
+      ">${label}</span>`;
+          },
+        },
+
+        accessor: (value) => value?.title || '',
+        sorter: (a, b) => {
+          const aVal = a?.title || '';
+          const bVal = b?.title || '';
+          return aVal.localeCompare(bVal);
+        },
+        formatter: (cell) => {
+          const column = cell.getValue();
+
+          if (!column) return '';
+
+          const el = document.createElement('div');
+
+          el.innerText = column.title;
+          el.style.background = column.color;
+          el.style.color = '#fff';
+          el.style.padding = '2px 6px';
+          el.style.borderRadius = '6px';
+          el.style.fontSize = '12px';
+          el.style.display = 'inline-block';
+
+          return el;
+        },
+      },
+    ];
+  }
+
+  // kanban_table: ColumnDefinition[] = [
+  //   {
+  //     title: 'Название',
+  //     field: 'title',
+  //     sorter: 'string',
+  //   },
+  //   {
+  //     title: 'Дедлайн',
+  //     field: 'deadline',
+  //     hozAlign: 'center',
+  //     width: 140,
+  //     editor: dateEditor,
+  //   },
+  //   {
+  //     title: 'Готово',
+  //     field: 'isDone',
+  //     width: 90,
+  //     hozAlign: 'center',
+
+  //     formatter: 'tickCross',
+  //     formatterParams: {
+  //       allowEmpty: false,
+  //       tickElement: '✔',
+  //       crossElement: '',
+  //     },
+
+  //     editor: true, // checkbox editor
+  //     headerSort: true,
+  //   },
+  //   {
+  //     title: 'Статус',
+  //     field: 'column', // 👈 full object
+  //     editor: 'list',
+  //     editorParams: {
+  //       values: (() => this.statusOptions) as any,
+  //       itemFormatter: (label: string, value: any) => {
+  //         console.log(label, value);
+  //         return `<span style="
+  //       background:${value.color};
+  //       color:white;
+  //       padding:2px 6px;
+  //       border-radius:6px;
+  //     ">${label}</span>`;
+  //       },
+  //     },
+
+  //     accessor: (value) => value?.title || '',
+  //     sorter: (a, b) => {
+  //       const aVal = a?.title || '';
+  //       const bVal = b?.title || '';
+  //       return aVal.localeCompare(bVal);
+  //     },
+  //     formatter: (cell) => {
+  //       const column = cell.getValue();
+
+  //       if (!column) return '';
+
+  //       const el = document.createElement('div');
+
+  //       el.innerText = column.title;
+  //       el.style.background = column.color;
+  //       el.style.color = '#fff';
+  //       el.style.padding = '2px 6px';
+  //       el.style.borderRadius = '6px';
+  //       el.style.fontSize = '12px';
+  //       el.style.display = 'inline-block';
+
+  //       return el;
+  //     },
+  //   },
+  // ];
 
   table_def = [
     {
@@ -214,7 +407,13 @@ export class InitComponent implements OnInit {
         );
       },
     },
-    { prop: 'num', name: 'Номер', sortable: true, autoSize: true, columnType: 'numeric' },
+    {
+      prop: 'num',
+      name: 'Номер',
+      sortable: true,
+      autoSize: true,
+      columnType: 'numeric',
+    },
     {
       ...this.managerChoices,
       prop: 'manager',
@@ -238,6 +437,12 @@ export class InitComponent implements OnInit {
   getProjects(): Observable<Project[]> {
     return this.http.get<Project[]>(
       `${projectListUrl}/api/project-list/project/all`
+    );
+  }
+
+  fetchUserKanbanTasks() {
+    return this.http.get<any[]>(
+      `https://test-kanban-api.k-portal.ru/task/users-tasks`
     );
   }
 
@@ -328,6 +533,20 @@ export class InitComponent implements OnInit {
       },
     },
   };
+
+  getUniqueColumns(tasks: any[]) {
+    const map = new Map<string, any>();
+
+    tasks.forEach((task) => {
+      const col = task.column;
+
+      if (col && !map.has(col.uid)) {
+        map.set(col.uid, col);
+      }
+    });
+
+    return Array.from(map.values());
+  }
 }
 
 export const RU_MESSAGES = {
@@ -354,4 +573,55 @@ export const RU_MESSAGES = {
     cancel: 'Отмена',
     reset: 'Сбросить',
   },
+};
+
+var dateEditor = function (cell: any, onRendered: any, success: any, cancel: any) {
+  let value = cell.getValue(); // can be null
+  let cellValue: string;
+
+  if (value) {
+    // parse string date to Luxon or timestamp
+    const dt = typeof value === 'number'
+      ? DateTime.fromMillis(value)
+      : DateTime.fromFormat(value, 'dd/MM/yyyy');
+
+    cellValue = dt.isValid ? dt.toFormat('yyyy-MM-dd') : '';
+  } else {
+    cellValue = ''; // empty for null
+  }
+
+  const input = document.createElement('input');
+  input.setAttribute('type', 'date');
+  input.style.padding = '4px';
+  input.style.width = '100%';
+  input.style.boxSizing = 'border-box';
+  input.value = cellValue;
+
+  onRendered(() => {
+    input.focus();
+    input.style.height = '100%';
+  });
+
+  function onChange() {
+    if (input.value) {
+      // convert back to milliseconds or whatever format you store
+      const newValue = DateTime.fromFormat(input.value, 'yyyy-MM-dd');
+      if (newValue.isValid) {
+        success(newValue.toMillis()); // store as timestamp
+      } else {
+        cancel();
+      }
+    } else {
+      success(null); // allow clearing the date
+    }
+  }
+
+  input.addEventListener('blur', onChange);
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') onChange();
+    if (e.key === 'Escape') cancel();
+  });
+
+  return input;
 };
