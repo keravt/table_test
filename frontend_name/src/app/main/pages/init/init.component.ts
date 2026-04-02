@@ -292,6 +292,13 @@ export class InitComponent implements OnInit {
       editor: 'number',
       validator: 'required',
     },
+     {
+      title: 'Номер 1с',
+      field: 'num1c',
+      sorter: 'string',
+      editor: 'input',
+      validator: 'required',
+    },
     {
       title: 'Руководитель',
       field: 'manager',
@@ -576,52 +583,61 @@ export const RU_MESSAGES = {
 };
 
 var dateEditor = function (cell: any, onRendered: any, success: any, cancel: any) {
-  let value = cell.getValue(); // can be null
-  let cellValue: string;
+  let value = cell.getValue();
+  let cellValue = '';
 
   if (value) {
-    // parse string date to Luxon or timestamp
     const dt = typeof value === 'number'
       ? DateTime.fromMillis(value)
       : DateTime.fromFormat(value, 'dd/MM/yyyy');
 
-    cellValue = dt.isValid ? dt.toFormat('yyyy-MM-dd') : '';
-  } else {
-    cellValue = ''; // empty for null
+    if (dt.isValid) {
+      cellValue = dt.toFormat('yyyy-MM-dd');
+    }
   }
 
+  // 🔥 WRAPPER FIX
+  const container = document.createElement('div');
+  container.style.height = '100%';
+  container.style.display = 'flex';
+  container.style.alignItems = 'center';
+
   const input = document.createElement('input');
-  input.setAttribute('type', 'date');
-  input.style.padding = '4px';
-  input.style.width = '100%';
-  input.style.boxSizing = 'border-box';
+  input.type = 'date';
   input.value = cellValue;
 
+  input.style.width = '100%';
+  input.style.height = '100%';
+  input.style.border = 'none';
+  input.style.outline = 'none';
+
+  container.appendChild(input);
+
   onRendered(() => {
-    input.focus();
-    input.style.height = '100%';
+    setTimeout(() => {   // 🔥 VERY IMPORTANT FIX
+      input.focus();
+    });
   });
 
   function onChange() {
     if (input.value) {
-      // convert back to milliseconds or whatever format you store
       const newValue = DateTime.fromFormat(input.value, 'yyyy-MM-dd');
       if (newValue.isValid) {
-        success(newValue.toMillis()); // store as timestamp
+        success(newValue.toMillis());
       } else {
         cancel();
       }
     } else {
-      success(null); // allow clearing the date
+      success(null);
     }
   }
 
   input.addEventListener('blur', onChange);
 
-  input.addEventListener('keydown', function (e) {
+  input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') onChange();
     if (e.key === 'Escape') cancel();
   });
 
-  return input;
+  return container; // 🔥 return wrapper, not input
 };

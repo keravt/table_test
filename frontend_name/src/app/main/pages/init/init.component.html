@@ -1,3 +1,14 @@
-<ng-container *ngIf="projects$ | async">
-      <lib-ais-table [data]="tasks" [columns]="kanban_table"></lib-ais-table>
-</ng-container>
+<mat-tab-group style="height: 100%">
+  <mat-tab label="Канбан">
+    <lib-ais-table
+      *ngIf="tasks.length && kanban_table.length"
+      [data]="tasks"
+      [columns]="kanban_table"
+    ></lib-ais-table>
+  </mat-tab>
+  <mat-tab label="Реестр проектов">
+    <ng-container *ngIf="projects$ | async">
+      <lib-ais-table [data]="projects" [columns]="table_def"></lib-ais-table>
+    </ng-container>
+  </mat-tab>
+</mat-tab-group>
