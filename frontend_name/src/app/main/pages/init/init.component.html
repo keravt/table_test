@@ -8,7 +8,12 @@
   </mat-tab>
   <mat-tab label="Реестр проектов">
     <ng-container *ngIf="projects$ | async">
-      <lib-ais-table [data]="projects" [columns]="table_def"></lib-ais-table>
+      <lib-ais-table
+        [data]="projects"
+        [columns]="table_def"
+        [features]="features"
+        [readonly]="true"
+      ></lib-ais-table>
     </ng-container>
   </mat-tab>
 </mat-tab-group>

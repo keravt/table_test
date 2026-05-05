@@ -53,6 +53,14 @@ export class InitComponent implements OnInit {
   statusList: any[] = [];
   statusOptions: any[] = [];
   kanban_table: ColumnDefinition[] = [];
+  features = {
+    undoRedo: false,
+    search: true,
+    pagination: false,
+    download: true,
+    grouping: true,
+    columnToggle: true,
+  };
 
   constructor(private readonly http: HttpClient) {}
   ngOnInit(): void {
@@ -66,7 +74,7 @@ export class InitComponent implements OnInit {
         )?.value;
 
         if (sv) {
-          deadline = Number(sv)
+          deadline = Number(sv);
         }
 
         return {
@@ -141,7 +149,7 @@ export class InitComponent implements OnInit {
         editor: dateEditor,
         formatter: function (cell) {
           const value = cell.getValue();
-          if (!value) return '';
+          if (!value) return 'Нет дедлайна';
           return DateTime.fromMillis(value).toFormat('dd/MM/yyyy');
         },
       },
@@ -277,7 +285,7 @@ export class InitComponent implements OnInit {
   //   },
   // ];
 
-  table_def = [
+  table_def: ColumnDefinition[] = [
     {
       title: 'Название',
       field: 'fullName',
@@ -292,7 +300,7 @@ export class InitComponent implements OnInit {
       editor: 'number',
       validator: 'required',
     },
-     {
+    {
       title: 'Номер 1с',
       field: 'num1c',
       sorter: 'string',
@@ -582,14 +590,20 @@ export const RU_MESSAGES = {
   },
 };
 
-var dateEditor = function (cell: any, onRendered: any, success: any, cancel: any) {
+var dateEditor = function (
+  cell: any,
+  onRendered: any,
+  success: any,
+  cancel: any
+) {
   let value = cell.getValue();
   let cellValue = '';
 
   if (value) {
-    const dt = typeof value === 'number'
-      ? DateTime.fromMillis(value)
-      : DateTime.fromFormat(value, 'dd/MM/yyyy');
+    const dt =
+      typeof value === 'number'
+        ? DateTime.fromMillis(value)
+        : DateTime.fromFormat(value, 'dd/MM/yyyy');
 
     if (dt.isValid) {
       cellValue = dt.toFormat('yyyy-MM-dd');
@@ -614,7 +628,8 @@ var dateEditor = function (cell: any, onRendered: any, success: any, cancel: any
   container.appendChild(input);
 
   onRendered(() => {
-    setTimeout(() => {   // 🔥 VERY IMPORTANT FIX
+    setTimeout(() => {
+      // 🔥 VERY IMPORTANT FIX
       input.focus();
     });
   });
